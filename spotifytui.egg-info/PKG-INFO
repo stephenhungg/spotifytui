@@ -1,3 +1,47 @@
+Metadata-Version: 2.4
+Name: spotifytui
+Version: 1.0.0
+Summary: A beautiful Terminal User Interface for Spotify
+Home-page: https://github.com/yourusername/spotifytui
+Author: Your Name
+Author-email: your.email@example.com
+Project-URL: Bug Reports, https://github.com/yourusername/spotifytui/issues
+Project-URL: Source, https://github.com/yourusername/spotifytui
+Project-URL: Documentation, https://github.com/yourusername/spotifytui#readme
+Keywords: spotify,tui,terminal,music,player,cli
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Topic :: Multimedia :: Sound/Audio :: Players
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Operating System :: OS Independent
+Classifier: Environment :: Console
+Classifier: Environment :: Console :: Curses
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: textual>=0.40.0
+Requires-Dist: spotipy>=2.23.0
+Requires-Dist: requests>=2.31.0
+Requires-Dist: python-dotenv>=1.0.0
+Requires-Dist: rich>=13.7.0
+Requires-Dist: Pillow>=10.0.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: project-url
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
 # Spotify TUI 🎵
 
 A beautiful and feature-rich Terminal User Interface (TUI) for Spotify, built with Python and Textual.
