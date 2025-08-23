@@ -1,2 +1,2 @@
 [console_scripts]
-spotifytui = spotifytui_cli:main
+spotifytui = src.simple_tui:main

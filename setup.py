@@ -40,7 +40,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "spotifytui=spotifytui_cli:main",
+            "spotifytui=src.simple_tui:main",
         ],
     },
     include_package_data=True,

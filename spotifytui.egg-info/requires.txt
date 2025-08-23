@@ -1,6 +1,6 @@
-textual>=0.40.0
-spotipy>=2.23.0
-requests>=2.31.0
-python-dotenv>=1.0.0
-rich>=13.7.0
-Pillow>=10.0.0
+textual
+spotipy
+python-dotenv
+requests
+lyricsgenius
+Pillow

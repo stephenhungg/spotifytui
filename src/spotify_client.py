@@ -42,21 +42,27 @@ class SpotifyClient:
                 "user-read-currently-playing",
                 "user-read-playback-position",
                 "user-read-recently-played",
-                "user-read-playback-state",
                 "user-read-email",
                 "playlist-read-private",
                 "playlist-read-collaborative",
                 "user-library-read",
                 "user-top-read",
-                "user-read-recently-played",
                 "user-follow-read"
             ]
+            
+            # Set up cache directory for tokens
+            cache_dir = os.path.expanduser("~/.cache/spotifytui")
+            os.makedirs(cache_dir, exist_ok=True)
+            cache_path = os.path.join(cache_dir, ".spotify_cache")
             
             self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
                 client_id=client_id,
                 client_secret=client_secret,
                 scope=" ".join(scope),
-                redirect_uri=redirect_uri or "http://127.0.0.1:8888/callback"
+                redirect_uri=redirect_uri or "http://127.0.0.1:8888/callback",
+                cache_path=cache_path,
+                open_browser=True,
+                show_dialog=False
             ))
             logger.info("Successfully authenticated with Spotify")
         except Exception as e:

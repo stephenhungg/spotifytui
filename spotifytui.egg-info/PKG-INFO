@@ -24,12 +24,12 @@ Classifier: Environment :: Console
 Classifier: Environment :: Console :: Curses
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
-Requires-Dist: textual>=0.40.0
-Requires-Dist: spotipy>=2.23.0
-Requires-Dist: requests>=2.31.0
-Requires-Dist: python-dotenv>=1.0.0
-Requires-Dist: rich>=13.7.0
-Requires-Dist: Pillow>=10.0.0
+Requires-Dist: textual
+Requires-Dist: spotipy
+Requires-Dist: python-dotenv
+Requires-Dist: requests
+Requires-Dist: lyricsgenius
+Requires-Dist: Pillow
 Dynamic: author
 Dynamic: author-email
 Dynamic: classifier

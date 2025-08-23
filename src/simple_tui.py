@@ -11,15 +11,19 @@ from textual import work
 import asyncio
 
 from src.spotify_client import SpotifyClient
+from src.lyrics_service import LyricsService
 import requests
 from PIL import Image
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SimpleSpotifyTUI(App):
     """Simple working Spotify TUI."""
     
     TITLE = "Spotify TUI 🎵"
-    CSS_PATH = "styles.css"
+    # Back to clean default styling
     
     current_track = reactive("Loading...")
     current_artist = reactive("")
@@ -28,6 +32,10 @@ class SimpleSpotifyTUI(App):
     track_progress_ms = reactive(0)
     track_duration_ms = reactive(0)
     album_art_url = reactive("")
+    track_popularity = reactive(0)
+    track_explicit = reactive(False)
+    track_release_date = reactive("")
+    track_album = reactive("Unknown")
     current_album_art_ascii = ""
     current_screen = reactive("player")
     playlist_cursor = reactive(0)
@@ -37,23 +45,34 @@ class SimpleSpotifyTUI(App):
     viewing_tracks = reactive(False)
     tracks_scroll_offset = reactive(0)
     
+    # Lyrics variables
+    current_lyrics = reactive("")
+    lyrics_source = reactive("")
+    current_track_id = reactive("")
+    lyrics_scroll_offset = reactive(0)
+    
     def __init__(self):
         super().__init__()
         self.spotify_client = None
+        self.lyrics_service = LyricsService()
     
     def compose(self) -> ComposeResult:
         yield Header()
         
         with Container():
-            # Main content with player and playlists side by side
+            # Main content with everything side by side
             with Horizontal():
                 # Left side - Player
                 with Container(id="player-section", classes="player-panel"):
                     yield Static(id="player-content")
                 
-                # Right side - Playlists
+                # Middle - Playlists
                 with Container(id="playlist-section", classes="playlist-panel"):
                     yield Static(id="playlist-content")
+                
+                # Right side - Lyrics
+                with Container(id="lyrics-section", classes="lyrics-panel"):
+                    yield Static(id="lyrics-content")
             
 
         
@@ -67,7 +86,7 @@ class SimpleSpotifyTUI(App):
         
         # Add help text to footer
         footer = self.query_one("Footer")
-        footer.text = "🎮 j/k: Navigate | Enter: Select/Play | Space: Play/Pause | N/P: Skip | B/ESC: Back | Q: Quit"
+        footer.text = "🎮 j/k: Navigate Playlists | ←→: Scroll Lyrics | L: Loop Lyrics | Enter: Select/Play | Space: Play/Pause | N/P: Skip | Q: Quit"
     
     @work
     async def init_spotify(self):
@@ -84,16 +103,39 @@ class SimpleSpotifyTUI(App):
         if not self.spotify_client:
             return
         
+        # If we have a client but no playlists data, try to load them
+        if not hasattr(self, 'playlists_data') or not self.playlists_data:
+            try:
+                playlists = self.spotify_client.get_user_playlists()
+                if playlists:
+                    self.playlists_data = playlists[:15]
+                    self.update_screen()  # Refresh the display
+            except Exception:
+                pass  # Ignore errors, will retry next time
+        
         try:
             playback = self.spotify_client.get_current_playback()
             if playback and playback.get('item'):
                 track = playback['item']
+                track_id = track.get('id', '')
                 self.current_track = track.get('name', 'Unknown')
                 self.current_artist = ', '.join([a['name'] for a in track.get('artists', [])])
                 self.current_album = track.get('album', {}).get('name', 'Unknown')
                 self.is_playing = playback.get('is_playing', False)
                 self.track_progress_ms = playback.get('progress_ms', 0)
                 self.track_duration_ms = track.get('duration_ms', 0)
+                
+                # Get additional track info
+                self.track_popularity = track.get('popularity', 0)
+                self.track_explicit = track.get('explicit', False)
+                album_info = track.get('album', {})
+                self.track_release_date = album_info.get('release_date', 'Unknown')
+                self.track_album = album_info.get('name', 'Unknown')
+                
+                # Check if track changed for lyrics
+                if track_id != self.current_track_id:
+                    self.current_track_id = track_id
+                    self.fetch_lyrics_for_current_track()
                 
                 # Get album art URL and process it
                 album = track.get('album', {})
@@ -119,8 +161,36 @@ class SimpleSpotifyTUI(App):
             self.current_track = f"Error: {e}"
             self.update_screen()
     
+
+    
+    @work
+    async def fetch_lyrics_for_current_track(self):
+        """Fetch lyrics for the currently playing track."""
+        if not self.current_track or self.current_track == "No music playing":
+            return
+        
+        try:
+            self.lyrics_source = "🔍 Searching..."
+            self.current_lyrics = "🔍 Searching for lyrics..."
+            self.update_screen()
+            
+            lyrics, source = self.lyrics_service.get_lyrics(self.current_artist, self.current_track)
+            if lyrics:
+                self.current_lyrics = lyrics
+                self.lyrics_source = source
+            else:
+                self.current_lyrics = f"❌ No lyrics found for:\n{self.current_track}\nby {self.current_artist}"
+                self.lyrics_source = "Not found"
+            
+            self.lyrics_scroll_offset = 0  # Reset scroll when new lyrics load
+            self.update_screen()
+        except Exception as e:
+            self.current_lyrics = f"❌ Error fetching lyrics: {e}"
+            self.lyrics_source = "Error"
+            self.update_screen()
+    
     def update_screen(self):
-        """Update both player and playlist panels."""
+        """Update all three panels simultaneously."""
         # Update player panel
         player_content = self.query_one("#player-content")
         player_content.update(self.get_player_display())
@@ -131,6 +201,10 @@ class SimpleSpotifyTUI(App):
             playlist_content.update(self.get_tracks_view())
         else:
             playlist_content.update(self.get_playlists_text())
+        
+        # Update lyrics panel
+        lyrics_content = self.query_one("#lyrics-content")
+        lyrics_content.update(self.get_lyrics_display())
     
     def get_player_display(self):
         """Create an epic player display with progress bar and ASCII art."""
@@ -172,23 +246,40 @@ Controls: Space - Play/Pause | N/→ - Next | P/← - Previous | 1-6 - Navigate 
         # Album art (ASCII style)
         album_art = self.get_ascii_album_art()
         
-        # Create the display
+        # Track info section
+        explicit_badge = "🅴" if self.track_explicit else ""
+        release_year = self.track_release_date[:4] if len(self.track_release_date) >= 4 else "Unknown"
+        
+        # Format track info properly (accounting for emoji space)
+        track_name = self.current_track[:46] if len(self.current_track) <= 46 else self.current_track[:43] + "..."
+        artist_name = self.current_artist[:51] if len(self.current_artist) <= 51 else self.current_artist[:48] + "..."
+        album_name = self.current_album[:51] if len(self.current_album) <= 51 else self.current_album[:48] + "..."
+        
+        # Format stats properly
+        popularity_text = f"{self.track_popularity}/100"
+        album_text = self.track_album[:44] if len(self.track_album) <= 44 else self.track_album[:41] + "..."
+        
+        # Create the display with enhanced track info
         text = f"""
 🎵 SPOTIFY TUI - {status_text} {status_icon}
 
 {album_art}
 
 ╔══════════════════════════════════════════════════════════════╗
-║  🎵 {self.current_track[:50]}{'.' * (50 - len(self.current_track)) if len(self.current_track) < 50 else ''}  ║
-║  👤 {self.current_artist[:50]}{'.' * (50 - len(self.current_artist)) if len(self.current_artist) < 50 else ''}  ║
-║  💿 {self.current_album[:50]}{'.' * (50 - len(self.current_album)) if len(self.current_album) < 50 else ''}  ║
+║ 🎵 {track_name:<46}{explicit_badge:<3}
+║ 👤 {artist_name:<51}
+║ 💿 {album_name:<51}
+║                                                              
+║ 📊 TRACK INFO                                                
+║ 📅 Released: {release_year:<8} 🔥 Popularity: {popularity_text:<10}    
+║ 💿 Album: {album_text:<44}
 ╠══════════════════════════════════════════════════════════════╣
-║  {progress_time} [{progress_bar}] {duration_time}  ║
-║  Progress: {progress_ratio * 100:.1f}%{'':>40}║
+║ {progress_time} [{progress_bar}] {duration_time}             
+║ Progress: {progress_ratio * 100:.1f}%{'':<38}               
 ╚══════════════════════════════════════════════════════════════╝
 
 Controls:
-Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigate Screens | Q - Quit
+Space - Play/Pause | N - Next Track | P - Previous Track | ←→ - Scroll Lyrics | Q - Quit
 """
         return text
     
@@ -374,6 +465,9 @@ Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigat
     
     def get_playlists_view(self):
         """Show the main playlists view."""
+        if not self.spotify_client:
+            return "📚 PLAYLISTS\n\n❌ Not connected to Spotify"
+        
         try:
             playlists = self.spotify_client.get_user_playlists()
             if not playlists:
@@ -387,7 +481,7 @@ Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigat
                 self.playlist_cursor = 0
             
             text = "📚 YOUR PLAYLISTS\n"
-            text += "Use ↑↓/j/k to navigate, Enter to view tracks, P to play playlist\n\n"
+            text += "Use ↑↓/j/k to navigate, Enter to view tracks, Shift+P to play playlist\n\n"
             
             for i, playlist in enumerate(self.playlists_data):
                 name = playlist.get('name', 'Unknown')
@@ -469,23 +563,65 @@ Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigat
         
         return text
     
-    def on_button_pressed(self, event):
-        """Handle button presses."""
-        screen_name = event.button.id
-        self.current_screen = screen_name
-        self.update_screen()
+    def get_lyrics_display(self):
+        """Display lyrics for the current song with scrolling."""
+        if not self.current_track or self.current_track == "No music playing":
+            return """
+📝 LYRICS
+
+🎵 No music playing
+
+Start playing a song to see lyrics here!
+Use ↑↓/j/k to scroll, 1-3 to switch screens, Q to quit
+"""
         
-        # Update button states
-        for btn in self.query("Button"):
-            if btn.id == screen_name:
-                btn.variant = "primary"
-            else:
-                btn.variant = "default"
+        # Header with current track info
+        header = f"""📝 LYRICS - {self.lyrics_source}
+
+🎵 {self.current_track}
+👤 {self.current_artist}
+💿 {self.current_album}
+
+────────────────────────────────────────────────────────────────
+"""
+        
+        if not self.current_lyrics:
+            return header + "\n🔍 Loading lyrics...\n"
+        
+        # Split lyrics into lines for scrolling
+        lyrics_lines = self.current_lyrics.split('\n')
+        
+        # Calculate scrolling window (show 20 lines at a time)
+        window_size = 20
+        total_lines = len(lyrics_lines)
+        
+        # Make sure scroll offset doesn't go out of bounds
+        max_scroll = max(0, total_lines - window_size)
+        self.lyrics_scroll_offset = max(0, min(self.lyrics_scroll_offset, max_scroll))
+        
+        start_idx = self.lyrics_scroll_offset
+        end_idx = min(start_idx + window_size, total_lines)
+        
+        # Build the display
+        display_lines = lyrics_lines[start_idx:end_idx]
+        lyrics_content = '\n'.join(display_lines)
+        
+        # Add scroll indicator
+        footer = "\n────────────────────────────────────────────────────────────────\n"
+        if total_lines > window_size:
+            progress = (start_idx + 1) / total_lines * 100
+            footer += f"📍 Lines {start_idx + 1}-{end_idx} of {total_lines} ({progress:.0f}%) | ←→ to scroll"
+        else:
+            footer += "Use ←→ arrows to scroll lyrics"
+        
+        return header + lyrics_content + footer
+    
+
     
     def on_key(self, event):
         """Handle key presses."""
         
-        # VIM-style navigation in playlists (always active now)
+        # Playlist navigation
         if event.key == "up" or event.key == "k":
             if self.viewing_tracks:
                 if self.current_playlist_tracks:
@@ -508,11 +644,29 @@ Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigat
                     self.update_screen()
             event.prevent_default()
         
+        # Lyrics scrolling with L key
+        elif event.key == "l":
+            # Toggle lyrics scroll mode or scroll down
+            lyrics_lines = self.current_lyrics.split('\n') if self.current_lyrics else []
+            max_scroll = max(0, len(lyrics_lines) - 20)
+            if self.lyrics_scroll_offset < max_scroll:
+                self.lyrics_scroll_offset += 1
+            else:
+                self.lyrics_scroll_offset = 0  # Loop back to top
+            self.update_screen()
+            event.prevent_default()
+        
         elif event.key == "enter":
             if self.viewing_tracks:
                 self.play_selected_track()
             else:
                 self.view_playlist_tracks()
+            event.prevent_default()
+        
+        # Play playlist (P key in playlist view)
+        elif event.key == "P":
+            if not self.viewing_tracks:
+                self.play_selected_playlist()
             event.prevent_default()
         
         elif event.key == "escape" or event.key == "b":
@@ -533,7 +687,7 @@ Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigat
                     self.notify(f"Error: {e}")
             event.prevent_default()
         
-        elif event.key == "n" or event.key == "right":
+        elif event.key == "n":
             # Skip to next track
             if self.spotify_client:
                 try:
@@ -542,20 +696,37 @@ Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigat
                     self.notify(f"Error: {e}")
             event.prevent_default()
         
-        elif event.key == "p" or event.key == "left":
-            # Skip to previous track (only if not viewing playlists)
-            if self.spotify_client and self.current_screen != "playlists":
+        elif event.key == "p":
+            # Skip to previous track
+            if self.spotify_client:
                 try:
                     self.spotify_client.skip_to_previous()
                 except Exception as e:
                     self.notify(f"Error: {e}")
             event.prevent_default()
         
+        # Left/Right arrow keys for lyrics scrolling
+        elif event.key == "left":
+            # Scroll lyrics up
+            if self.lyrics_scroll_offset > 0:
+                self.lyrics_scroll_offset -= 1
+                self.update_screen()
+            event.prevent_default()
+        
+        elif event.key == "right":
+            # Scroll lyrics down
+            lyrics_lines = self.current_lyrics.split('\n') if self.current_lyrics else []
+            max_scroll = max(0, len(lyrics_lines) - 20)
+            if self.lyrics_scroll_offset < max_scroll:
+                self.lyrics_scroll_offset += 1
+                self.update_screen()
+            event.prevent_default()
+        
         elif event.key == "q":
             self.exit()
     
     def play_selected_playlist(self):
-        """Play the currently selected playlist."""
+        """Play the currently selected playlist from the beginning."""
         if not self.spotify_client or not self.playlists_data:
             return
         
@@ -566,8 +737,9 @@ Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigat
             
             if playlist_uri:
                 try:
-                    # Play the playlist
+                    # Play the playlist from the beginning
                     self.spotify_client.sp.start_playback(context_uri=playlist_uri)
+                    self.notify(f"🎵 Playing playlist '{playlist_name}'")
                 except Exception as e:
                     self.notify(f"❌ Error playing playlist: {e}")
             else:
@@ -597,7 +769,7 @@ Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigat
                     self.notify(f"❌ Error loading tracks: {e}")
     
     def play_selected_track(self):
-        """Play the currently selected track."""
+        """Play the currently selected track within the playlist context."""
         if not self.spotify_client or not self.current_playlist_tracks:
             return
         
@@ -607,14 +779,25 @@ Space - Play/Pause | N/→ - Next Track | P/← - Previous Track | 1-6 - Navigat
             track_name = track.get('name', 'Unknown')
             track_uri = track.get('uri')
             
-            if track_uri:
-                try:
-                    # Play the specific track
-                    self.spotify_client.sp.start_playback(uris=[track_uri])
-                except Exception as e:
-                    self.notify(f"❌ Error playing track: {e}")
+            # Get the current playlist info
+            if self.playlists_data and 0 <= self.playlist_cursor < len(self.playlists_data):
+                playlist = self.playlists_data[self.playlist_cursor]
+                playlist_uri = playlist.get('uri')
+                
+                if track_uri and playlist_uri:
+                    try:
+                        # Play the track within the playlist context, starting from the selected track
+                        self.spotify_client.sp.start_playback(
+                            context_uri=playlist_uri,
+                            offset={"position": self.track_cursor}
+                        )
+                        self.notify(f"🎵 Playing '{track_name}' from playlist")
+                    except Exception as e:
+                        self.notify(f"❌ Error playing track: {e}")
+                else:
+                    self.notify("❌ Track or playlist URI not found")
             else:
-                self.notify("❌ Track URI not found")
+                self.notify("❌ No playlist selected")
 
 def main():
     """Main entry point for the spotifytui command."""

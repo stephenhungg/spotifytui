@@ -7,6 +7,6 @@ spotifytui.egg-info/entry_points.txt
 spotifytui.egg-info/requires.txt
 spotifytui.egg-info/top_level.txt
 src/__init__.py
-src/app.py
-src/screens.py
+src/lyrics_service.py
+src/simple_tui.py
 src/spotify_client.py

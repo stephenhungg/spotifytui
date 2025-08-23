@@ -1,1 +1,6 @@
-
+textual
+spotipy
+python-dotenv
+requests
+lyricsgenius
+Pillow

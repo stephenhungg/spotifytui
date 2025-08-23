@@ -1,229 +1,130 @@
-# Spotify TUI 🎵
+# spotifytui 🎵
 
-A beautiful and feature-rich Terminal User Interface (TUI) for Spotify, built with Python and Textual.
+just a clean spotify TUI that actually works. no bullshit.
 
-## Features ✨
+## what it does
 
-- **🎵 Playback Control**: Play, pause, skip, and control your Spotify playback
-- **📚 Playlist Management**: Browse and manage your playlists
-- **🔍 Search**: Search for tracks, artists, albums, and playlists
-- **👤 Artist Pages**: View artist information and albums
-- **💿 Album Pages**: Browse album tracks and details
-- **📝 Lyrics Display**: View lyrics for currently playing tracks
-- **🎛️ Volume Control**: Adjust playback volume
-- **📱 Device Management**: Switch between available playback devices
-- **🎨 Modern UI**: Beautiful, responsive terminal interface
+- plays your music 🎵
+- shows your playlists 📚  
+- displays lyrics 📝
+- track info that's actually useful 📊
+- clean three-panel layout
+- doesn't break every 5 minutes
 
-## Screenshots 📸
+## setup (it's easy)
 
-The application features a clean, modern interface with:
-- Sidebar navigation with emoji icons
-- Real-time playback information
-- Interactive data tables
-- Progress bars for track progress and volume
-- Responsive design that adapts to terminal size
+**1. get spotify credentials**
+- hit up [spotify developer dashboard](https://developer.spotify.com/dashboard)
+- make an app, get your client id & secret
+- set redirect uri to: `http://127.0.0.1:8888/callback`
 
-## Prerequisites 📋
+**2. install this thing**
+```bash
+git clone <your-repo-url>
+cd spotifytui
+pipx install .
+```
 
-- Python 3.8 or higher
-- Spotify account
-- Spotify Developer App credentials
+**3. set your env vars**
+```bash
+# add to your ~/.zshrc or ~/.bashrc
+export SPOTIPY_CLIENT_ID="your_client_id"
+export SPOTIPY_CLIENT_SECRET="your_client_secret" 
+export SPOTIPY_REDIRECT_URI="http://127.0.0.1:8888/callback"
+export GENIUS_ACCESS_TOKEN="your_genius_token"  # optional for lyrics
+```
 
-## Installation 🚀
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/spotifytui.git
-   cd spotifytui
-   ```
-
-2. **Create and activate a virtual environment (recommended):**
-   ```bash
-   python3 -m venv spotifytui_env
-   source spotifytui_env/bin/activate  # On Windows: spotifytui_env\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Install the package (enables `spotifytui` command):**
-   ```bash
-   pip install -e .
-   ```
-
-3. **Set up Spotify API credentials:**
-   
-   a. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-   b. Create a new app
-   c. Copy your Client ID and Client Secret
-   d. Add `http://localhost:8888/callback` to your app's Redirect URIs
-
-4. **Configure environment variables:**
-   ```bash
-   cp env_example.txt .env
-   ```
-   
-   Edit `.env` and add your credentials:
-   ```bash
-   SPOTIPY_CLIENT_ID=your_spotify_client_id_here
-   SPOTIPY_CLIENT_SECRET=your_spotify_client_secret_here
-   SPOTIPY_REDIRECT_URI=http://localhost:8888/callback
-   ```
-
-## Usage 🎯
-
-### 🚀 Running the Application
-
-**Option 1: Global Command (Recommended)**
-After installing the package, you can run from anywhere:
+**4. run it**
 ```bash
 spotifytui
 ```
 
-**Option 2: Direct Script**
-From the project directory:
-```bash
-source spotifytui_env/bin/activate && python simple_tui.py
-```
+that's it.
 
-**Option 3: Launcher Script**
-Use the provided launcher (works from anywhere):
-```bash
-./path/to/spotifytui/spotifytui_launcher.sh
-```
+## controls
 
-### 🎮 Controls
+| key | what it does |
+|-----|-------------|
+| `space` | play/pause |
+| `n` / `p` | next/previous track |
+| `↑` / `↓` | navigate playlists/tracks |
+| `j` / `k` | same but vim style |
+| `←` / `→` | scroll lyrics |
+| `enter` | play selected track/playlist |
+| `shift+p` | play entire playlist |
+| `q` | quit |
 
-**Navigation:**
-- **1-6**: Switch between screens directly
-- **Arrow Keys**: Navigate UI elements
-- **Q**: Quit application
+## features
 
-**Playback:**
-- **Space**: Play/Pause
-- **N** or **→**: Next track
-- **P** or **←**: Previous track
+**playback section:**
+- current track info
+- album art (16x16 pixel art cause why not)
+- progress bar
+- track stats (release year, popularity, etc.)
 
-**Playlists:**
-- **↑↓** or **j/k**: Navigate playlists/tracks (Vim-style)
-- **Enter**: View tracks or play
-- **ESC** or **B**: Go back
+**playlists section:**
+- all your spotify playlists
+- browse tracks in any playlist
+- play individual tracks or whole playlists
 
-**Modern Features:**
-- **Real-time album art**: 16x16 pixel art displays
-- **Scrolling track lists**: Auto-scroll through long playlists
-- **Progress bars**: Visual track progress
-- **Live notifications**: Instant feedback for actions
+**lyrics section:**
+- real lyrics from genius api
+- auto-scrolling
+- clean formatting (strips out the garbage)
 
-4. **Search:**
-   - Enter search queries in the search box
-   - Select search type (tracks, artists, albums, playlists)
-   - Click search to see results
+## lyrics setup (optional)
 
-5. **Playlists:**
-   - View all your playlists
-   - See playlist details like track count and ownership
+if you want actual lyrics instead of placeholder text:
 
-## Key Bindings ⌨️
+1. get a genius api token from [genius.com/api-clients](https://genius.com/api-clients)
+2. add it to your env: `export GENIUS_ACCESS_TOKEN="your_token"`
+3. restart your terminal
+4. lyrics will just work
 
-- **Tab**: Navigate between elements
-- **Enter**: Activate buttons and select items
-- **Arrow Keys**: Navigate tables and lists
-- **Ctrl+C**: Exit the application
+## requirements
 
-## Architecture 🏗️
+- spotify premium (api limitations, not my fault)
+- python 3.8+
+- working terminal
+- basic understanding of environment variables
 
-The application is built with a modular architecture:
+## dependencies
+
+the usual suspects:
+- `textual` - for the TUI magic
+- `spotipy` - spotify api wrapper  
+- `lyricsgenius` - lyrics from genius
+- `pillow` - album art processing
+- `requests` - http stuff
+- `python-dotenv` - env file support
+
+## troubleshooting
+
+**"command not found"**: make sure pipx is in your PATH
+
+**auth keeps failing**: double-check your redirect URI is exactly `http://127.0.0.1:8888/callback`
+
+**no lyrics**: either set up genius token or just vibe with the placeholder
+
+**nothing playing**: make sure spotify is actually running somewhere
+
+**looks broken**: your terminal probably doesn't support unicode properly
+
+## architecture
 
 ```
 src/
-├── app.py              # Main application class
-├── spotify_client.py   # Spotify API wrapper
-└── screens.py          # Individual screen components
+├── simple_tui.py      # main app
+├── spotify_client.py  # spotify api stuff  
+└── lyrics_service.py  # genius api stuff
 ```
 
-- **`SpotifyTUI`**: Main application class managing navigation and state
-- **`SpotifyClient`**: Wrapper around the Spotify API using spotipy
-- **Screen Classes**: Individual components for each functional area
+simple and clean. no over-engineering.
 
-## Dependencies 📦
+## contributing
 
-- **textual**: Modern TUI framework for Python
-- **spotipy**: Official Spotify Web API wrapper
-- **rich**: Rich text and formatting library
-- **requests**: HTTP library for API calls
-- **python-dotenv**: Environment variable management
-
-## Spotify API Scopes 🔐
-
-The application requests the following Spotify API scopes:
-- `user-read-playback-state`: Read current playback state
-- `user-modify-playback-state`: Control playback
-- `user-read-currently-playing`: Get currently playing track
-- `user-read-playback-position`: Get playback position
-- `user-read-recently-played`: Access recently played tracks
-- `playlist-read-private`: Read private playlists
-- `user-library-read`: Read user's library
-- `user-top-read`: Read user's top tracks/artists
-
-## Contributing 🤝
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Troubleshooting 🔧
-
-### Common Issues
-
-1. **Authentication Failed:**
-   - Ensure your Spotify app credentials are correct
-   - Check that the redirect URI matches exactly
-   - Verify your app is properly configured in Spotify Developer Dashboard
-
-2. **No Playback Control:**
-   - Make sure you have an active Spotify Premium account
-   - Check that you have an active device (Spotify app open)
-   - Verify the device is not in private session mode
-
-3. **Import Errors:**
-   - Ensure all dependencies are installed: `pip install -r requirements.txt`
-   - Check Python version compatibility
-
-### Debug Mode
-
-Enable debug logging by setting the `LOG_LEVEL` environment variable:
-```bash
-export LOG_LEVEL=DEBUG
-python main.py
-```
-
-## License 📄
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments 🙏
-
-- [Textual](https://github.com/Textualize/textual) - The amazing TUI framework
-- [Spotipy](https://github.com/spotipy-dev/spotipy) - Spotify Web API wrapper
-- [Spotify Web API](https://developer.spotify.com/documentation/web-api/) - Official API documentation
-
-## Roadmap 🗺️
-
-Future features planned:
-- [ ] User library management
-- [ ] Recently played tracks
-- [ ] Top tracks and artists
-- [ ] Follow/unfollow artists
-- [ ] Create and edit playlists
-- [ ] Audio analysis and features
-- [ ] Crossfade and audio settings
-- [ ] Keyboard shortcuts customization
-- [ ] Theme customization
-- [ ] Export functionality
+sure, send a PR. keep it simple though.
 
 ---
 
-**Note**: This application requires a Spotify Premium account for full functionality. Some features may be limited with free accounts due to Spotify API restrictions.
-
-Made with ❤️ for music lovers who love the terminal!
+*made for people who like music and terminals. if you need a gui, this isn't for you.*
