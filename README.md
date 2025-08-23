@@ -1,6 +1,6 @@
 # spotifytui 🎵
 
-just a clean spotify TUI that actually works. no bullshit.
+just a clean spotify TUI that actually works!
 
 ## what it does
 
@@ -20,7 +20,7 @@ just a clean spotify TUI that actually works. no bullshit.
 
 **2. install this thing**
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/stephenhungg/spotifytui/
 cd spotifytui
 pipx install .
 ```
@@ -69,7 +69,6 @@ that's it.
 
 **lyrics section:**
 - real lyrics from genius api
-- auto-scrolling
 - clean formatting (strips out the garbage)
 
 ## lyrics setup (optional)
@@ -83,14 +82,12 @@ if you want actual lyrics instead of placeholder text:
 
 ## requirements
 
-- spotify premium (api limitations, not my fault)
+- spotify premium (api limitations unfortunately)
 - python 3.8+
 - working terminal
-- basic understanding of environment variables
 
 ## dependencies
 
-the usual suspects:
 - `textual` - for the TUI magic
 - `spotipy` - spotify api wrapper  
 - `lyricsgenius` - lyrics from genius
@@ -119,12 +116,10 @@ src/
 └── lyrics_service.py  # genius api stuff
 ```
 
-simple and clean. no over-engineering.
-
 ## contributing
 
 sure, send a PR. keep it simple though.
 
 ---
 
-*made for people who like music and terminals. if you need a gui, this isn't for you.*
+*made for performative neovim users*
