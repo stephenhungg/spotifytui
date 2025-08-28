@@ -10,8 +10,8 @@ from textual.reactive import reactive
 from textual import work
 import asyncio
 
-from src.spotify_client import SpotifyClient
-from src.lyrics_service import LyricsService
+from spotify_client import SpotifyClient
+from lyrics_service import LyricsService
 import requests
 from PIL import Image
 import io

@@ -14,13 +14,14 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 setup(
     name="spotifytui",
     version="1.0.0",
-    author="Your Name",
-    author_email="your.email@example.com",
+    author="Stephen Hung",
+    author_email="stephenhung@berkeley.edu",
     description="A beautiful Terminal User Interface for Spotify",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/spotifytui",
-    packages=find_packages(),
+    url="https://github.com/stephenhungg/spotifytui",
+    py_modules=["simple_tui", "spotify_client", "lyrics_service"],
+    package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: End Users/Desktop",
@@ -40,7 +41,7 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "spotifytui=src.simple_tui:main",
+            "spotifytui=simple_tui:main",
         ],
     },
     include_package_data=True,
@@ -49,9 +50,9 @@ setup(
     },
     keywords="spotify, tui, terminal, music, player, cli",
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/spotifytui/issues",
-        "Source": "https://github.com/yourusername/spotifytui",
-        "Documentation": "https://github.com/yourusername/spotifytui#readme",
+        "Bug Reports": "https://github.com/stephenhungg/spotifytui/issues",
+        "Source": "https://github.com/stephenhungg/spotifytui",
+        "Documentation": "https://github.com/stephenhungg/spotifytui#readme",
     },
 )
 
