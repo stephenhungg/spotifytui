@@ -46,6 +46,12 @@ Thumbs.db
 .cache/
 .spotify_cache
 
-# Environment variables
+# Environment variables - NEVER commit these!
 .env
+.env.local
+.env.*.local
+*.env
+config.json
+secrets.json
+api_keys.txt
 

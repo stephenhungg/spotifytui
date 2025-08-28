@@ -25,13 +25,15 @@ cd spotifytui
 pipx install .
 ```
 
-**3. set your env vars**
+**3. set up your api keys**
 ```bash
-# add to your ~/.zshrc or ~/.bashrc
-export SPOTIPY_CLIENT_ID="your_client_id"
-export SPOTIPY_CLIENT_SECRET="your_client_secret" 
-export SPOTIPY_REDIRECT_URI="http://127.0.0.1:8888/callback"
-export GENIUS_ACCESS_TOKEN="your_genius_token"  # optional for lyrics
+# copy the template and add your keys
+cp .env.example .env
+
+# edit .env with your actual credentials
+# SPOTIPY_CLIENT_ID=your_actual_client_id
+# SPOTIPY_CLIENT_SECRET=your_actual_client_secret
+# GENIUS_ACCESS_TOKEN=your_genius_token  # optional for lyrics
 ```
 
 **4. run it**
@@ -76,8 +78,8 @@ that's it.
 if you want actual lyrics instead of placeholder text:
 
 1. get a genius api token from [genius.com/api-clients](https://genius.com/api-clients)
-2. add it to your env: `export GENIUS_ACCESS_TOKEN="your_token"`
-3. restart your terminal
+2. add it to your `.env` file: `GENIUS_ACCESS_TOKEN=your_token`
+3. restart the app
 4. lyrics will just work
 
 ## requirements
