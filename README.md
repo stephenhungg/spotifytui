@@ -1,6 +1,7 @@
 # spotifytui 🎵
 
 just a clean spotify TUI that actually works!
+check out vibechain-api for the machine learning part of this project: [vibechain-api](https://github.com/stephenhungg/vibechain-api)
 
 ## what it does
 
