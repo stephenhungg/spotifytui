@@ -12,6 +12,7 @@ check out vibechain-api for the machine learning part of this project: [vibechai
 - track info that's actually useful 📊
 - clean three-panel layout
 - doesn't break every 5 minutes
+- smart shuffle feature powered using ML
 
 ## setup (it's easy)
 
@@ -57,6 +58,7 @@ that's it.
 | `enter` | play selected track/playlist |
 | `shift+p` | play entire playlist |
 | `q` | quit |
+| `s` | smart shuffle |
 
 ## features
 
@@ -65,6 +67,8 @@ that's it.
 - album art (16x16 pixel art cause why not)
 - progress bar
 - track stats (release year, popularity, etc.)
+- get ML analysis on your music taste
+- smart shuffle to play the next most likely track based on current mood
 
 **playlists section:**
 - all your spotify playlists
