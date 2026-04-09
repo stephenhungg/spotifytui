@@ -19,7 +19,6 @@ class LyricsService:
         genius_token = os.getenv('GENIUS_ACCESS_TOKEN')
         
         if genius_token:
-            logger.info("Using Genius API with access token")
             try:
                 self.genius = lyricsgenius.Genius(genius_token)
                 self.genius.verbose = False  # Reduce output
@@ -32,7 +31,6 @@ class LyricsService:
                 self.genius = None
                 self.has_genius = False
         else:
-            logger.info("No Genius token found, using fallback method")
             self.genius = None
             self.has_genius = False
         
@@ -79,7 +77,6 @@ class LyricsService:
             if not clean_artist or not clean_title:
                 return None
             
-            logger.info(f"Fetching lyrics from Genius: {clean_artist} - {clean_title}")
             
             # Search for the song
             song = self.genius.search_song(clean_title, clean_artist)
@@ -243,7 +240,6 @@ For now, enjoy the music! 🎵"""
         if not artist or not title:
             return None, "Missing artist or title"
         
-        logger.info(f"Fetching lyrics for: {artist} - {title}")
         
         if self.has_genius:
             # Try the main search with Genius

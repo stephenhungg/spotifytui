@@ -3,11 +3,14 @@ Spotify API client wrapper using spotipy
 """
 
 import os
+import time
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from spotipy.exceptions import SpotifyException
 from typing import Optional, List, Dict, Any
 import logging
 from dotenv import load_dotenv
+from feature_estimator import AudioFeatureEstimator
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,6 +22,14 @@ class SpotifyClient:
     
     def __init__(self):
         self.sp = None
+        self.feature_estimator = AudioFeatureEstimator()
+        self.last_request_time = 0
+        self.min_request_interval = 0.5  # Increased to 500ms between requests
+        
+        # Caching to reduce API calls
+        self.cache = {}
+        self.cache_ttl = 30  # Cache for 30 seconds
+        
         self._authenticate()
     
     def _authenticate(self):
@@ -29,9 +40,6 @@ class SpotifyClient:
             client_secret = os.getenv('SPOTIPY_CLIENT_SECRET')
             redirect_uri = os.getenv('SPOTIPY_REDIRECT_URI')
             
-            logger.info(f"Client ID: {client_id[:10] if client_id else 'None'}...")
-            logger.info(f"Client Secret: {client_secret[:10] if client_secret else 'None'}...")
-            logger.info(f"Redirect URI: {redirect_uri}")
             
             if not client_id or not client_secret:
                 raise ValueError("Missing SPOTIPY_CLIENT_ID or SPOTIPY_CLIENT_SECRET in environment variables")
@@ -64,15 +72,43 @@ class SpotifyClient:
                 open_browser=True,
                 show_dialog=False
             ))
-            logger.info("Successfully authenticated with Spotify")
         except Exception as e:
             logger.error(f"Authentication failed: {e}")
             raise
     
+    def _rate_limit(self):
+        """Ensure we don't exceed rate limits"""
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        if time_since_last < self.min_request_interval:
+            sleep_time = self.min_request_interval - time_since_last
+            time.sleep(sleep_time)
+        self.last_request_time = time.time()
+    
+    def _safe_api_call(self, func, *args, **kwargs):
+        """Make a safe API call with rate limiting and error handling"""
+        self._rate_limit()
+        try:
+            return func(*args, **kwargs)
+        except SpotifyException as e:
+            if e.http_status == 429:  # Rate limit exceeded
+                retry_after = int(e.headers.get('Retry-After', 1))
+                logger.warning(f"Rate limit hit, waiting {retry_after} seconds")
+                time.sleep(retry_after)
+                # Retry once
+                self._rate_limit()
+                return func(*args, **kwargs)
+            else:
+                raise e
+    
     def get_current_playback(self) -> Optional[Dict[str, Any]]:
         """Get current playback information."""
         try:
-            return self.sp.current_playback()
+            playback = self._safe_api_call(self.sp.current_playback)
+            if playback and playback.get('item'):
+                track = playback['item']
+                logger.debug(f"Current playback: {track.get('name', 'Unknown')} by {', '.join([a['name'] for a in track.get('artists', [])])}")
+            return playback
         except Exception as e:
             logger.error(f"Failed to get current playback: {e}")
             return None
@@ -139,8 +175,11 @@ class SpotifyClient:
     def get_user_playlists(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Get user's playlists."""
         try:
-            result = self.sp.current_user_playlists(limit=limit)
-            return result.get('items', [])
+            logger.debug(f"Fetching user playlists (limit: {limit})")
+            result = self._safe_api_call(self.sp.current_user_playlists, limit=limit)
+            playlists = result.get('items', [])
+            logger.debug(f"Retrieved {len(playlists)} playlists")
+            return playlists
         except Exception as e:
             logger.error(f"Failed to get playlists: {e}")
             return []
@@ -180,3 +219,50 @@ class SpotifyClient:
         except Exception as e:
             logger.error(f"Failed to get recently played: {e}")
             return []
+    
+    def get_audio_features_with_fallback(self, track_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Get audio features for a track, with intelligent fallback estimation.
+        
+        Args:
+            track_data: Spotify track object
+            
+        Returns:
+            Dict with audio features (either from API or estimated)
+        """
+        track_id = track_data.get('id')
+        
+        if not track_id:
+            # No track ID, use estimation
+            estimated = self.feature_estimator.estimate_features(track_data)
+            return self._track_features_to_dict(estimated)
+        
+        try:
+            # Try the official API first
+            audio_features = self._safe_api_call(self.sp.audio_features, [track_id])
+            if audio_features and audio_features[0]:
+                return audio_features[0]
+        except Exception as e:
+            logger.debug(f"Audio features API failed for {track_id}: {e}")
+        
+        # Fallback to estimation
+        estimated = self.feature_estimator.estimate_features(track_data)
+        return self._track_features_to_dict(estimated)
+    
+    def _track_features_to_dict(self, features) -> Dict[str, Any]:
+        """Convert TrackFeatures object to dict matching Spotify API format"""
+        return {
+            'danceability': features.danceability,
+            'energy': features.energy,
+            'valence': features.valence,
+            'tempo': features.tempo,
+            'acousticness': features.acousticness,
+            'instrumentalness': features.instrumentalness,
+            'liveness': features.liveness,
+            'speechiness': features.speechiness,
+            'key': 5,  # Default key (F major)
+            'loudness': -10.0,  # Default loudness
+            'mode': 1,  # Default major mode
+            'time_signature': 4,  # Default 4/4 time
+            'duration_ms': features.tempo * 60 * 1000 / 120,  # Rough estimate
+        }

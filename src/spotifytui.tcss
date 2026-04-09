@@ -1,0 +1,48 @@
+/* spotifytui theme */
+
+Screen {
+    background: $surface;
+}
+
+Header {
+    dock: top;
+    background: $accent;
+    color: $text;
+}
+
+Footer {
+    dock: bottom;
+    background: $panel;
+}
+
+#main-container {
+    layout: horizontal;
+    height: 1fr;
+}
+
+/* player panel - left */
+#player-section {
+    width: 30%;
+    min-width: 36;
+    border: solid $accent-darken-2;
+    padding: 1 2;
+    overflow-y: auto;
+}
+
+/* playlist panel - middle */
+#playlist-section {
+    width: 35%;
+    min-width: 30;
+    border: solid $accent-darken-2;
+    padding: 1 2;
+    overflow-y: auto;
+}
+
+/* lyrics panel - right */
+#lyrics-section {
+    width: 35%;
+    min-width: 30;
+    border: solid $accent-darken-2;
+    padding: 1 2;
+    overflow-y: auto;
+}
